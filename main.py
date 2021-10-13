@@ -99,6 +99,9 @@ def handle_confirmation(update, context):
             reply_markup=reply_markup
         )
         change_data('states', update.effective_chat.id, NUMBER_SAVED)
+        with open('backup.json', 'w') as file:
+            json.dump(database, file, indent=2)
+
     elif message == 'Нет, повторить ввод.':
         context.bot.send_message(chat_id=update.effective_chat.id, text='Тогда введите номер повторно.', reply_markup=reply_markup)
         change_data('states', update.effective_chat.id, GET_NUMBER)
@@ -118,7 +121,7 @@ def main():
 
     dispatcher.add_handler(MessageHandler(Filters.text, parse_text_response))
 
-    # dispatcher.add_error_handler(error)
+    dispatcher.add_error_handler(error)
 
     updater.start_polling()
     updater.idle()
@@ -139,6 +142,8 @@ if __name__ == '__main__':
     current_state = 'start'
 
     redis_db = redis.Redis(host=REDIS_URL, port=12076, db=0, password=REDIS_PASSWORD)
+
+    redis_db.set('data', json.dumps({}))
 
     database = json.loads(redis_db.get('data'))
 
