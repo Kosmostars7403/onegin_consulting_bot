@@ -143,8 +143,6 @@ if __name__ == '__main__':
 
     redis_db = redis.Redis(host=REDIS_URL, port=12076, db=0, password=REDIS_PASSWORD)
 
-    redis_db.set('data', json.dumps({}))
-
     database = json.loads(redis_db.get('data'))
 
     if not database:
