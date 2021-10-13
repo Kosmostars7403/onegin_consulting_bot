@@ -99,8 +99,6 @@ def handle_confirmation(update, context):
             reply_markup=reply_markup
         )
         change_data('states', update.effective_chat.id, NUMBER_SAVED)
-        with open('backup.json', 'w') as file:
-            json.dump(database, file, indent=2)
 
     elif message == 'Нет, повторить ввод.':
         context.bot.send_message(chat_id=update.effective_chat.id, text='Тогда введите номер повторно.', reply_markup=reply_markup)
