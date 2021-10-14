@@ -27,7 +27,7 @@ def parse_text_response(update, context):
     elif database['states'].get(chat_id) == CONFIRM_NUMBER:
         handle_confirmation(update, context)
     elif database['states'].get(chat_id) == NUMBER_SAVED:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Номер уже сохраненж, ждите уведомлений.")
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Номер уже сохранен, ждите уведомлений.")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Не понимаю, чего вы хотите!")
 
@@ -42,6 +42,11 @@ def handle_phone_number_input(update, context):
     try:
         phone_number = phonenumbers.parse(message, 'RU')
     except NumberParseException as e:
+        if e.error_type == 0:
+            context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text='Некорректный код страны.'
+            )
         if e.error_type == 1 and len(message) > 1:
             context.bot.send_message(
                 chat_id=update.effective_chat.id,
