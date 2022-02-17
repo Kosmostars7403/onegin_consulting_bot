@@ -141,12 +141,12 @@ if __name__ == '__main__':
     TELEGRAM_TOKEN = env('TELEGRAM_TOKEN')
     REDIS_PASSWORD = env('REDIS_PASSWORD')
     REDIS_URL = env('REDIS_URL')
+    REDIS_PORT = env('REDIS_PORT')
 
     current_state = 'start'
 
-    redis_db = redis.Redis(host=REDIS_URL, port=12076, db=0, password=REDIS_PASSWORD)
-
-    database = json.loads(redis_db.get('data'))
+    redis_db = redis.Redis(host=REDIS_URL, port=REDIS_PORT, db=0, password=REDIS_PASSWORD)
+    database = redis_db.get('data') and json.loads(redis_db.get('data')) or {}
 
     if not database:
         database = {'states': {}, 'chats': {}}

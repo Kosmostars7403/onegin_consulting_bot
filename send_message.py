@@ -42,19 +42,23 @@ if __name__ == '__main__':
     TELEGRAM_TOKEN = env('TELEGRAM_TOKEN')
     REDIS_PASSWORD = env('REDIS_PASSWORD')
     REDIS_URL = env('REDIS_URL')
+    REDIS_PORT = env('REDIS_PORT')
     MAX_MESSAGE_LENGTH = 4095
 
-    redis_db = redis.Redis(host=REDIS_URL, port=12076, db=0, password=REDIS_PASSWORD)
+    redis_db = redis.Redis(host=REDIS_URL, port=REDIS_PORT, db=0, password=REDIS_PASSWORD)
 
     database = json.loads(redis_db.get('data'))
 
     try:
-        phone_number = phonenumbers.parse(args.phone_number, 'RU')
-        phone_number = phonenumbers.format_number(phone_number, phonenumbers.PhoneNumberFormat.E164)
+        if args.phone_number == 'all':
+            for chat_id in database['chats'].values():
+                send_message(chat_id, message_text)
+        else:
+            phone_number = phonenumbers.parse(args.phone_number, 'RU')
+            phone_number = phonenumbers.format_number(phone_number, phonenumbers.PhoneNumberFormat.E164)
 
-        chat_id = database['chats'].get(phone_number)
-
-        send_message(chat_id, message_text)
+            chat_id = database['chats'].get(phone_number)
+            send_message(chat_id, message_text)
 
     except NumberParseException as e:
         if e.error_type == 0:
