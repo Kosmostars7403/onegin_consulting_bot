@@ -14,22 +14,27 @@ def parse_console_arguments():
     return parser
 
 
-def send_message(chat_id, message_text):
-    if not chat_id:
-        print(f'Пользователь с таким телефонным номером не подписался.')
-        return
+def send_message(chat_id, message_text, phone_number, database, redis_db):
+    try:
+        if not chat_id:
+            print(f'Пользователь с таким телефонным номером не подписался.')
+            return
 
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+        bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
-    if len(message_text) > MAX_MESSAGE_LENGTH:
-        messages = [message_text[i:i + MAX_MESSAGE_LENGTH] for i in range(0, len(message_text), MAX_MESSAGE_LENGTH)]
-        for message in messages:
-            bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
-        return
+        if len(message_text) > MAX_MESSAGE_LENGTH:
+            messages = [message_text[i:i + MAX_MESSAGE_LENGTH] for i in range(0, len(message_text), MAX_MESSAGE_LENGTH)]
+            for message in messages:
+                bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
+            return
 
-    bot.send_message(chat_id=chat_id, text=args.message, parse_mode='HTML')
+        bot.send_message(chat_id=chat_id, text=args.message, parse_mode='HTML')
 
-    print(f'Отправлено сообщение на номер {args.phone_number}. Текст сообщения {args.message}.')
+        print(f'Отправлено сообщение на номер {phone_number}. Текст сообщения {args.message}.')
+    except telegram.error.Unauthorized:
+        print(f'Пользователь с телефонным номером {phone_number} отписался. Удаляю его из базы.')
+        database['chats'].pop(phone_number, None)
+        redis_db.set('data', json.dumps(database))
 
 
 if __name__ == '__main__':
@@ -51,14 +56,14 @@ if __name__ == '__main__':
 
     try:
         if args.phone_number == 'all':
-            for chat_id in database['chats'].values():
-                send_message(chat_id, message_text)
+            for phone_id_pair in database['chats'].items():
+                send_message(phone_id_pair[1], message_text, phone_id_pair[0], database, redis_db)
         else:
             phone_number = phonenumbers.parse(args.phone_number, 'RU')
             phone_number = phonenumbers.format_number(phone_number, phonenumbers.PhoneNumberFormat.E164)
 
             chat_id = database['chats'].get(phone_number)
-            send_message(chat_id, message_text)
+            send_message(chat_id, message_text, phone_number, database, redis_db)
 
     except NumberParseException as e:
         if e.error_type == 0:
@@ -69,4 +74,3 @@ if __name__ == '__main__':
             print(f'Слишком короткий номер.')
         elif e.error_type == 4:
             print(f'Слишком длинный номер.')
-

@@ -1,3 +1,5 @@
+import subprocess
+
 from environs import Env
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import telegram
@@ -110,6 +112,11 @@ def handle_confirmation(update, context):
         change_data('states', update.effective_chat.id, GET_NUMBER)
 
 
+def send_message_to_all(update, context):
+    if str(update.effective_chat.id) == ADMIN_USER_CHAT_ID:
+        subprocess.run(['python3', 'send_message.py', 'all', update.message.text[5:]])
+
+
 def change_data(key, chat_id, value):
     database[key][str(chat_id)] = value
     redis_db.set('data', json.dumps(database))
@@ -121,6 +128,7 @@ def main():
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("all", send_message_to_all))
 
     dispatcher.add_handler(MessageHandler(Filters.text, parse_text_response))
 
@@ -142,13 +150,15 @@ if __name__ == '__main__':
     REDIS_PASSWORD = env('REDIS_PASSWORD')
     REDIS_URL = env('REDIS_URL')
     REDIS_PORT = env('REDIS_PORT')
+    ADMIN_USER_CHAT_ID = env('ADMIN_USER_CHAT_ID')
 
     current_state = 'start'
 
     redis_db = redis.Redis(host=REDIS_URL, port=REDIS_PORT, db=0, password=REDIS_PASSWORD)
-    database = redis_db.get('data') and json.loads(redis_db.get('data')) or {}
 
-    if not database:
+    if redis_db.get('data'):
+        database = json.loads(redis_db.get('data'))
+    else:
         database = {'states': {}, 'chats': {}}
         redis_db.set('data', json.dumps(database))
 
