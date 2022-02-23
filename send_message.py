@@ -32,6 +32,7 @@ def send_message(chat_id, message_text, phone_number, database, redis_db):
 
         print(f'Отправлено сообщение на номер {phone_number}. Текст сообщения {args.message}.')
     except telegram.error.Unauthorized:
+        print('sdfsdfsdfsdfsdf', phone_number)
         print(f'Пользователь с телефонным номером {phone_number} отписался. Удаляю его из базы.')
         database['chats'].pop(phone_number, None)
         redis_db.set('data', json.dumps(database))
@@ -56,7 +57,7 @@ if __name__ == '__main__':
 
     try:
         if args.phone_number == 'all':
-            for phone_id_pair in database['chats'].items():
+            for phone_id_pair in database['chats'].copy().items():
                 send_message(phone_id_pair[1], message_text, phone_id_pair[0], database, redis_db)
         else:
             phone_number = phonenumbers.parse(args.phone_number, 'RU')
