@@ -6,7 +6,6 @@ import telegram
 import phonenumbers
 from phonenumbers.phonenumberutil import NumberParseException
 import logging
-import redis
 import json
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -114,12 +113,28 @@ def handle_confirmation(update, context):
 
 def send_message_to_all(update, context):
     if str(update.effective_chat.id) == ADMIN_USER_CHAT_ID:
-        subprocess.run(['python3', 'send_message.py', 'all', update.message.text[5:]])
+        subprocess.run(['python3.9', 'send_message.py', 'all', update.message.text[5:]])
+
+
+def rewrite_file(file_content):
+    with open('database.json', 'w', encoding='utf-8') as f:
+        json.dump(file_content, f, indent=2)
 
 
 def change_data(key, chat_id, value):
     database[key][str(chat_id)] = value
-    redis_db.set('data', json.dumps(database))
+    rewrite_file(database)
+
+
+def load_database():
+    try:
+        with open('database.json', 'r', encoding='utf-8') as file:
+            db = json.load(file)
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
+        db = {'states': {}, 'chats': {}}
+        rewrite_file(db)
+
+    return db
 
 
 def main():
@@ -147,19 +162,10 @@ if __name__ == '__main__':
     env = Env()
     env.read_env()
     TELEGRAM_TOKEN = env('TELEGRAM_TOKEN')
-    REDIS_PASSWORD = env('REDIS_PASSWORD')
-    REDIS_URL = env('REDIS_URL')
-    REDIS_PORT = env('REDIS_PORT')
     ADMIN_USER_CHAT_ID = env('ADMIN_USER_CHAT_ID')
 
     current_state = 'start'
 
-    redis_db = redis.Redis(host=REDIS_URL, port=REDIS_PORT, db=0, password=REDIS_PASSWORD)
-
-    if redis_db.get('data'):
-        database = json.loads(redis_db.get('data'))
-    else:
-        database = {'states': {}, 'chats': {}}
-        redis_db.set('data', json.dumps(database))
+    database = load_database()
 
     main()

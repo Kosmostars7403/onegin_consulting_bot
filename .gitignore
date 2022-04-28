@@ -1,4 +1,6 @@
 .env
 venv
 .idea
-backup.json
+database.json
+__pycache__
+.DS_store
