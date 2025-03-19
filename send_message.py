@@ -1,9 +1,12 @@
 import argparse
-import telegram
+import logging
+
 import phonenumbers
+import telegram
 from environs import Env
 from phonenumbers.phonenumberutil import NumberParseException
 
+from groups import load_groups, extract_telegram_id
 from main import load_database, rewrite_file
 
 
@@ -37,6 +40,46 @@ def send_message(chat_id, message_text, phone_number, database):
         rewrite_file(database)
 
 
+# Команда для рассылки во все группы
+def send_all_groups(message_text, groups):
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+
+    for chat_id in groups:
+        send_message_to_group(message_text, bot, chat_id)
+
+
+# Команда отправки сообщения в группу
+def send_message_to_group(message_text, bot, chat_id):
+    try:
+        admins = bot.get_chat_administrators(chat_id)
+
+        if not any(admin.user.id == bot.id for admin in admins):
+            return
+
+        if len(message_text) > MAX_MESSAGE_LENGTH:
+            messages = [message_text[i:i + MAX_MESSAGE_LENGTH] for i in
+                        range(0, len(message_text), MAX_MESSAGE_LENGTH)]
+            for message in messages:
+                bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
+            return
+
+        bot.send_message(chat_id=chat_id, text=args.message, parse_mode='HTML')
+
+        logging.info(f"📩 Отправлено сообщение в {chat_id}")
+    except Exception as e:
+        logging.error(f"❌ Ошибка отправки в {chat_id}: {e}")
+
+
+# Отправка сообщения в определенную группу
+def send_to_current_group(message_text, chat_id, groups):
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+
+    if not chat_id in groups:
+        return
+
+    send_message_to_group(message_text=message_text, bot=bot, chat_id=chat_id)
+
+
 if __name__ == '__main__':
     args = parse_console_arguments().parse_args()
 
@@ -48,11 +91,21 @@ if __name__ == '__main__':
     MAX_MESSAGE_LENGTH = 4095
 
     database = load_database()
+    groups = load_groups()
 
     try:
         if args.phone_number == 'all':
             for phone_id_pair in database['chats'].copy().items():
                 send_message(phone_id_pair[1], message_text, phone_id_pair[0], database)
+
+        elif args.phone_number == 'all_groups_tg':
+            send_all_groups(message_text=message_text, groups=groups)
+
+        elif 'https://web.telegram.org/a/#' in args.phone_number:
+            chat_id = extract_telegram_id(args.phone_number)
+
+            send_to_current_group(message_text=message_text, chat_id=chat_id, groups=groups)
+
         else:
             phone_number = phonenumbers.parse(args.phone_number, 'RU')
             phone_number = phonenumbers.format_number(phone_number, phonenumbers.PhoneNumberFormat.E164)

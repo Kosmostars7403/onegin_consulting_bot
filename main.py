@@ -6,10 +6,9 @@ import phonenumbers
 import telegram
 from environs import Env
 from phonenumbers.phonenumberutil import NumberParseException
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
-from groups import load_groups, bot_joined, bot_left, handle_migration
+from groups import bot_joined, bot_left, handle_migration
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
@@ -139,39 +138,6 @@ def load_database():
 
     return db
 
-
-# Команда для рассылки
-def send_all_groups(update: Update, context: CallbackContext):
-    if str(update.effective_chat.id) != ADMIN_USER_CHAT_ID:
-        update.message.reply_text("У вас нет прав для выполнения этой команды.")
-        return
-
-    if not context.args:
-        update.message.reply_text("Используйте: /send_all_groups <текст>")
-        return
-
-    message_text = " ".join(context.args)
-    groups = load_groups()
-
-    if not groups:
-        update.message.reply_text("Нет групп для рассылки.")
-        return
-
-    count = 0
-
-    for chat_id in groups:
-        try:
-            bot_id = context.bot.id
-            admins = context.bot.get_chat_administrators(chat_id)
-            if any(admin.user.id == bot_id for admin in admins):
-                context.bot.send_message(chat_id, message_text)
-                count += 1
-                logging.info(f"📩 Отправлено сообщение в {chat_id}")
-        except Exception as e:
-            logging.error(f"❌ Ошибка отправки в {chat_id}: {e}")
-
-    update.message.reply_text(f"✅ Сообщение отправлено в {count} групп(ы).")
-
 def main():
     updater = Updater(TELEGRAM_TOKEN)
 
@@ -183,8 +149,6 @@ def main():
     dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, bot_joined))
     dispatcher.add_handler(MessageHandler(Filters.status_update.left_chat_member, bot_left))
     dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_migration))
-
-    dispatcher.add_handler(CommandHandler("send_all_groups", send_all_groups, pass_args=True))
 
     dispatcher.add_handler(MessageHandler(Filters.text, parse_text_response))
 

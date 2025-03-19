@@ -10,6 +10,15 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 JSON_FILE = "groups.json"
 
+# Получение айди группы из ссылки
+def extract_telegram_id(url: str) -> int | None:
+    try:
+        parts = url.split("/#")
+        if len(parts) > 1 and parts[1].startswith("-"):
+            return int(parts[1])
+    except Exception:
+        pass
+    return None
 
 # Функция загрузки списка групп
 def load_groups():
