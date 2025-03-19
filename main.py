@@ -1,12 +1,14 @@
+import json
+import logging
 import subprocess
 
-from environs import Env
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import telegram
 import phonenumbers
+import telegram
+from environs import Env
 from phonenumbers.phonenumberutil import NumberParseException
-import logging
-import json
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
+from groups import bot_joined, bot_left, handle_migration
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
@@ -16,7 +18,7 @@ def start(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Добрый день! Это бот ЮК \"Онегин-Консалтинг\".\n\nОтправьте мне свой номер телефона, а я начну "
-             "присылать важные  уведомления по работе. "
+             "присылать важные уведомления по работе. "
     )
     change_data('states', update.effective_chat.id, GET_NUMBER)
 
@@ -136,7 +138,6 @@ def load_database():
 
     return db
 
-
 def main():
     updater = Updater(TELEGRAM_TOKEN)
 
@@ -144,6 +145,10 @@ def main():
 
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("all", send_message_to_all))
+
+    dispatcher.add_handler(MessageHandler(Filters.status_update.new_chat_members, bot_joined))
+    dispatcher.add_handler(MessageHandler(Filters.status_update.left_chat_member, bot_left))
+    dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_migration))
 
     dispatcher.add_handler(MessageHandler(Filters.text, parse_text_response))
 
