@@ -9,7 +9,6 @@ from phonenumbers.phonenumberutil import NumberParseException
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 from groups import bot_joined, bot_left, handle_migration
-
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
@@ -24,7 +23,14 @@ def start(update, context):
 
 
 def parse_text_response(update, context):
-    chat_id = str(update.effective_chat.id)
+    chat = update.effective_chat
+
+    # Проверяем, что сообщение пришло в личные сообщения
+    if chat.type != "private":
+        return
+
+    chat_id = str(chat.id)
+
     if database['states'].get(chat_id) == GET_NUMBER:
         handle_phone_number_input(update, context)
     elif database['states'].get(chat_id) == CONFIRM_NUMBER:
