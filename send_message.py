@@ -101,7 +101,7 @@ if __name__ == '__main__':
         elif args.phone_number == 'all_groups_tg':
             send_all_groups(message_text=message_text, groups=groups)
 
-        elif 'https://web.telegram.org/a/#' in args.phone_number:
+        elif 'https://web.telegram.org' in args.phone_number:
             chat_id = extract_telegram_id(args.phone_number)
 
             send_to_current_group(message_text=message_text, chat_id=chat_id, groups=groups)
