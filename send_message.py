@@ -65,20 +65,28 @@ def send_message_to_group(message_text, bot, chat_id):
 
         bot.send_message(chat_id=chat_id, text=args.message, parse_mode='HTML')
 
-        logging.info(f"📩 Отправлено сообщение в {chat_id}")
+        print(f"📩 Отправлено сообщение в {chat_id}")
     except Exception as e:
-        logging.error(f"❌ Ошибка отправки в {chat_id}: {e}")
+        print(f"❌ Ошибка отправки в {chat_id}: {e}")
 
 
 # Отправка сообщения в определенную группу
 def send_to_current_group(message_text, chat_id, groups):
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    dop_chat_id = int(str(chat_id).replace('-', '-100'))
+    dop2_chat_id = int(str(chat_id).replace('-100', '-'))
 
-    if not chat_id in groups:
+    if chat_id in groups:
+        send_message_to_group(message_text=message_text, bot=bot, chat_id=chat_id)
         return
 
-    send_message_to_group(message_text=message_text, bot=bot, chat_id=chat_id)
+    if dop_chat_id in groups:
+        send_message_to_group(message_text=message_text, bot=bot, chat_id=dop_chat_id)
+        return
 
+    if dop2_chat_id in groups:
+        send_message_to_group(message_text=message_text, bot=bot, chat_id=dop2_chat_id)
+        return
 
 if __name__ == '__main__':
     args = parse_console_arguments().parse_args()
@@ -101,7 +109,7 @@ if __name__ == '__main__':
         elif args.phone_number == 'all_groups_tg':
             send_all_groups(message_text=message_text, groups=groups)
 
-        elif 'https://web.telegram.org/a/#' in args.phone_number:
+        elif 'https://web.telegram.org' in args.phone_number:
             chat_id = extract_telegram_id(args.phone_number)
 
             send_to_current_group(message_text=message_text, chat_id=chat_id, groups=groups)
